@@ -34,6 +34,13 @@
             </div>
         </div>
 
+        <div class="aporte-container">
+            <h2>Aporte de Proveedor</h2>
+            <select id="aporteProveedor"></select>
+            <input type="number" id="aporteMonto" placeholder="Monto del Aporte">
+            <button id="btnAportar" onclick="aportarDinero()">Aportar</button>
+        </div>
+
         <div class="table-container">
             <table>
                 <thead>
@@ -69,6 +76,9 @@
             <div>
                 <h3>Total</h3>
                 <p id="totalGeneral">$0</p>
+            </div>
+            <div class="borrar-todo-container">
+                <button id="btnBorrarTodo" onclick="borrarTodo()">Borrar Todo</button>
             </div>
         </div>
     </div>

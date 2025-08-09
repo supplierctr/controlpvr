@@ -9,7 +9,8 @@
             "L. CAMPANA": 15, "PESCA": 0, "SEPTIMA VINOS": 30, "GASEOSA PIPA": 15,
             "TEC. YAROS": 7, "CAR. ACONCAGUA": 28, "DON ENRIQUE": 28, "CAMPO IMAVA": 28,
             "ALQUILER ARREGUI": 30, "ALQUILER CANTINA": 30, "TEQUEÑOS": 0,
-            "MANTENIMIENTO/VARIOS": 15, "CRIOLLO": 28, "PAN MIGA/ARABE": 0
+            "MANTENIMIENTO/VARIOS": 15, "CRIOLLO": 28, "PAN MIGA/ARABE": 0,
+            "FARMACIA": 0, "FERRETERIA": 0, "IMPRENTA": 0
         };
 
         const tablaProveedores = document.getElementById('tablaProveedores');
@@ -21,6 +22,8 @@
         const pagadoInput = document.getElementById('pagado');
         const currentIndexInput = document.getElementById('currentIndex');
         const btnBorrar = document.getElementById('btnBorrar');
+        const aporteMontoInput = document.getElementById('aporteMonto');
+        const aporteProveedorInput = document.getElementById('aporteProveedor');
 
         let proveedores = JSON.parse(localStorage.getItem('proveedores')) || [];
 
@@ -148,6 +151,76 @@
             btnBorrar.style.display = 'none';
         }
 
+        function cargarProveedoresDropdown() {
+            const proveedoresUnicos = [...new Set(proveedores.map(p => p.proveedor))];
+            aporteProveedorInput.innerHTML = '<option value="">Seleccione un proveedor</option>';
+            proveedoresUnicos.forEach(p => {
+                const option = document.createElement('option');
+                option.value = p;
+                option.textContent = p;
+                aporteProveedorInput.appendChild(option);
+            });
+        }
+
+        function aportarDinero() {
+            let montoAporte = parseFloat(aporteMontoInput.value);
+            const selectedProvider = aporteProveedorInput.value;
+
+            if (!selectedProvider) {
+                alert('Por favor, seleccione un proveedor.');
+                return;
+            }
+
+            if (isNaN(montoAporte) || montoAporte <= 0) {
+                alert('Por favor, ingrese un monto de aporte válido.');
+                return;
+            }
+
+            const facturasPendientes = proveedores
+                .map((p, index) => ({...p, originalIndex: index})) // Guardar el índice original
+                .filter(p => p.proveedor === selectedProvider && (p.pagado || 0) < p.importe)
+                .sort((a, b) => new Date(a.fecha) - new Date(b.fecha));
+
+            let totalPagadoEnAporte = 0;
+            let resumenPagos = `Resumen de pagos para ${selectedProvider}:\n`;
+
+            for (const factura of facturasPendientes) {
+                if (montoAporte <= 0) break;
+
+                const deuda = factura.importe - (factura.pagado || 0);
+                const montoAPagar = Math.min(montoAporte, deuda);
+
+                const pOriginal = proveedores[factura.originalIndex];
+                pOriginal.pagado = (pOriginal.pagado || 0) + montoAPagar;
+                
+                montoAporte -= montoAPagar;
+                totalPagadoEnAporte += montoAPagar;
+
+                resumenPagos += `- Boleta N°${factura.numBol}: ${montoAPagar.toLocaleString()} pagados.\n`;
+            }
+
+            if (totalPagadoEnAporte > 0) {
+                guardarProveedores();
+                renderizarTabla();
+                alert(resumenPagos + `\nTotal pagado con el aporte: ${totalPagadoEnAporte.toLocaleString()}`);
+            } else {
+                alert(`No hay facturas pendientes para pagar para ${selectedProvider}.`);
+            }
+
+            aporteMontoInput.value = '';
+            aporteProveedorInput.value = '';
+        }
+
+        function borrarTodo() {
+            if (confirm('¿Está seguro de que desea borrar toda la información guardada? Esta acción no se puede deshacer.')) {
+                proveedores = [];
+                guardarProveedores();
+                renderizarTabla();
+                cargarProveedoresDropdown();
+                alert('Toda la información ha sido borrada.');
+            }
+        }
+
         function guardarTxt() {
             let contenido = "PROVEEDOR\tN° BOLETA\tFORMA PAGO\tIMPORTE\tFECHA\tPAGADO\tESTADO\n";
             proveedores.forEach(p => {
@@ -271,5 +344,6 @@
         document.addEventListener('DOMContentLoaded', () => {
             renderizarTabla();
             limpiarFormulario();
+            cargarProveedoresDropdown();
             autocomplete(document.getElementById("proveedor"), Object.keys(proveedoresData));
         });

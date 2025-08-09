@@ -59,6 +59,42 @@
             cursor: pointer;
             min-width: 150px;
         }
+
+        .aporte-container {
+            margin-bottom: 20px;
+            padding: 15px;
+            background-color: #f9f9f9;
+            border-radius: 8px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .aporte-container h2 {
+            margin: 0;
+            font-size: 1.2em;
+            flex-basis: 100%;
+        }
+
+        .aporte-container select,
+        .aporte-container input {
+            padding: 10px;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            font-size: 16px;
+            flex: 1;
+        }
+
+        .aporte-container button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            background-color: var(--info-color);
+            color: white;
+            cursor: pointer;
+            font-size: 16px;
+        }
         #btnAgregar { background-color: var(--primary-color); }
         #btnBorrar { background-color: var(--secondary-color); }
         #btnGuardarTxt { background-color: var(--info-color); }
@@ -154,4 +190,20 @@
         .total-section h3 {
             margin: 0 0 5px 0;
             color: var(--font-color);
+        }
+
+        .borrar-todo-container {
+            grid-column: 1 / -1;
+            margin-top: 15px;
+        }
+
+        #btnBorrarTodo {
+            width: 100%;
+            padding: 12px;
+            background-color: var(--secondary-color);
+            color: white;
+            border: none;
+            border-radius: 4px;
+            font-size: 16px;
+            cursor: pointer;
         }
