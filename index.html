@@ -5,53 +5,115 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Control de Proveedores</title>
     <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 </head>
 <body>
-
     <div class="container">
-        <h1>Control de Proveedores</h1>
+        <div class="header">
+            <h1><i class="fas fa-truck"></i> Control de Proveedores</h1>
+            <button id="darkModeToggle" class="dark-mode-toggle" title="Cambiar modo oscuro">
+                <i class="fas fa-moon"></i>
+            </button>
+        </div>
 
         <div class="form-container">
             <input type="hidden" id="currentIndex">
             <div class="autocomplete">
                 <input id="proveedor" type="text" placeholder="Proveedor" required>
+                <i class="fas fa-search autocomplete-icon"></i>
             </div>
             <input type="number" id="numBol" placeholder="N° Boleta (5 dígitos)" oninput="this.value=this.value.slice(0,5)" required>
             <select id="formaPago" required>
+                <option value="">Forma de Pago</option>
                 <option value="Efectivo">Efectivo</option>
                 <option value="Transferencia">Transferencia</option>
                 <option value="Cheques">Cheques</option>
             </select>
-            <input type="number" id="importe" placeholder="Importe" required>
+            <input type="number" id="importe" placeholder="Importe" step="0.01" min="0" required>
             <input type="date" id="fecha" required>
-            <input type="number" id="pagado" placeholder="Pagado">
+            <input type="number" id="pagado" placeholder="Pagado" step="0.01" min="0">
             <div class="form-buttons">
-                <button id="btnAgregar" onclick="agregarOActualizarProveedor()">Agregar / Actualizar</button>
-                <button id="btnBorrar" onclick="borrarProveedor()" style="display:none;">Borrar</button>
-                <button id="btnGuardarTxt" onclick="guardarTxt()">Guardar TXT</button>
-                <button id="btnCargarTxt" onclick="document.getElementById('fileInput').click()">Cargar Respaldo</button>
+                <button id="btnAgregar" onclick="agregarOActualizarProveedor()">
+                    <i class="fas fa-plus"></i> Agregar / Actualizar
+                </button>
+                <button id="btnBorrar" onclick="borrarProveedor()" style="display:none;">
+                    <i class="fas fa-trash"></i> Borrar
+                </button>
+                <button id="btnGuardarTxt" onclick="guardarTxt()">
+                    <i class="fas fa-file-alt"></i> Guardar TXT
+                </button>
+                <button id="btnGuardarExcel" onclick="guardarExcel()">
+                    <i class="fas fa-file-excel"></i> Guardar Excel
+                </button>
+                <button id="btnCargarTxt" onclick="document.getElementById('fileInput').click()">
+                    <i class="fas fa-upload"></i> Cargar Respaldo
+                </button>
                 <input type="file" id="fileInput" style="display:none" onchange="cargarTxt(event)" accept=".txt">
             </div>
         </div>
 
         <div class="aporte-container">
-            <h2>Aporte de Proveedor</h2>
-            <select id="aporteProveedor"></select>
-            <input type="number" id="aporteMonto" placeholder="Monto del Aporte">
-            <button id="btnAportar" onclick="aportarDinero()">Aportar</button>
+            <h2><i class="fas fa-money-bill-wave"></i> Aporte de Proveedor</h2>
+            <select id="aporteProveedor">
+                <option value="">Seleccione un proveedor</option>
+            </select>
+            <input type="number" id="aporteMonto" placeholder="Monto del Aporte" step="0.01" min="0">
+            <button id="btnAportar" onclick="aportarDinero()">
+                <i class="fas fa-hand-holding-usd"></i> Aportar
+            </button>
+        </div>
+
+        <div class="filters-container">
+            <div class="search-box">
+                <input type="text" id="searchInput" placeholder="Buscar proveedor, boleta, forma de pago...">
+                <i class="fas fa-search"></i>
+            </div>
+            <div class="filter-controls">
+                <select id="estadoFilter">
+                    <option value="">Todos los estados</option>
+                    <option value="Pagado">Pagado</option>
+                    <option value="Pendiente">Pendiente</option>
+                    <option value="Vencido">Vencido</option>
+                    <option value="No Vencido">No Vencido</option>
+                </select>
+                <select id="proveedorFilter">
+                    <option value="">Todos los proveedores</option>
+                </select>
+                <button id="btnLimpiarFiltros" onclick="limpiarFiltros()">
+                    <i class="fas fa-times"></i> Limpiar
+                </button>
+            </div>
         </div>
 
         <div class="table-container">
+            <div class="table-header">
+                <h3><i class="fas fa-table"></i> Registros de Proveedores</h3>
+                <span id="registrosCount" class="registros-count">0 registros</span>
+            </div>
             <table>
                 <thead>
                     <tr>
-                        <th>Proveedor</th>
-                        <th>N° Boleta</th>
-                        <th>Forma de Pago</th>
-                        <th>Importe</th>
-                        <th>Fecha</th>
-                        <th>Pagado</th>
-                        <th>Estado</th>
+                        <th onclick="ordenarTabla('proveedor')" class="sortable">
+                            Proveedor <i class="fas fa-sort"></i>
+                        </th>
+                        <th onclick="ordenarTabla('numBol')" class="sortable">
+                            N° Boleta <i class="fas fa-sort"></i>
+                        </th>
+                        <th onclick="ordenarTabla('formaPago')" class="sortable">
+                            Forma de Pago <i class="fas fa-sort"></i>
+                        </th>
+                        <th onclick="ordenarTabla('importe')" class="sortable">
+                            Importe <i class="fas fa-sort"></i>
+                        </th>
+                        <th onclick="ordenarTabla('fecha')" class="sortable">
+                            Fecha <i class="fas fa-sort"></i>
+                        </th>
+                        <th onclick="ordenarTabla('pagado')" class="sortable">
+                            Pagado <i class="fas fa-sort"></i>
+                        </th>
+                        <th onclick="ordenarTabla('estado')" class="sortable">
+                            Estado <i class="fas fa-sort"></i>
+                        </th>
                     </tr>
                 </thead>
                 <tbody id="tablaProveedores">
@@ -61,29 +123,33 @@
         </div>
 
         <div class="total-section">
-            <div>
-                <h3>Vencidas</h3>
+            <div class="total-card">
+                <h3><i class="fas fa-exclamation-triangle"></i> Vencidas</h3>
                 <p id="totalVencidas">$0</p>
             </div>
-            <div>
-                <h3>No Vencidas</h3>
+            <div class="total-card">
+                <h3><i class="fas fa-clock"></i> No Vencidas</h3>
                 <p id="totalNoVencidas">$0</p>
             </div>
-            <div>
-                <h3>Pagado</h3>
+            <div class="total-card">
+                <h3><i class="fas fa-check-circle"></i> Pagado</h3>
                 <p id="totalPagado">$0</p>
             </div>
-            <div>
-                <h3>Total</h3>
+            <div class="total-card">
+                <h3><i class="fas fa-calculator"></i> Total</h3>
                 <p id="totalGeneral">$0</p>
             </div>
             <div class="borrar-todo-container">
-                <button id="btnBorrarTodo" onclick="borrarTodo()">Borrar Todo</button>
+                <button id="btnBorrarTodo" onclick="borrarTodo()">
+                    <i class="fas fa-trash-alt"></i> Borrar Todo
+                </button>
             </div>
         </div>
     </div>
 
-    <script src="script.js"></script>
+    <!-- Toast Notification -->
+    <div id="toast" class="toast"></div>
 
+    <script src="script.js"></script>
 </body>
 </html>
