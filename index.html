@@ -11,9 +11,7 @@
     <div class="container">
         <div class="header">
             <h1><i class="fas fa-truck"></i> Control de Proveedores</h1>
-            <button id="darkModeToggle" class="dark-mode-toggle" title="Cambiar modo oscuro">
-                <i class="fas fa-moon"></i>
-            </button>
+            
         </div>
 
         <div class="form-container">
@@ -32,6 +30,10 @@
             <input type="number" id="importe" placeholder="Importe" step="0.01" min="0" required>
             <input type="date" id="fecha" required>
             <input type="number" id="pagado" placeholder="Pagado" step="0.01" min="0">
+            <div class="checkbox-container">
+                <input type="checkbox" id="pagadoCheckbox" onchange="togglePagado()">
+                <label for="pagadoCheckbox">Pagado Total</label>
+            </div>
             <div class="form-buttons">
                 <button id="btnAgregar" onclick="agregarOActualizarProveedor()">
                     <i class="fas fa-plus"></i> Agregar / Actualizar
@@ -90,6 +92,7 @@
                 <h3><i class="fas fa-table"></i> Registros de Proveedores</h3>
                 <span id="registrosCount" class="registros-count">0 registros</span>
             </div>
+            <div class="table-scroll-container">
             <table>
                 <thead>
                     <tr>
@@ -120,6 +123,7 @@
                     <!-- Las filas se agregarán aquí -->
                 </tbody>
             </table>
+        </div>
         </div>
 
         <div class="total-section">

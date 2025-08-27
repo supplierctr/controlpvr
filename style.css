@@ -14,22 +14,7 @@
     --transition: all 0.3s ease;
 }
 
-[data-theme="dark"] {
-    --primary-color: #66bb6a;
-    --secondary-color: #ef5350;
-    --info-color: #42a5f5;
-    --warning-color: #ffb74d;
-    --success-color: #66bb6a;
-    --background-color: #121212;
-    --surface-color: #1e1e1e;
-    --font-color: #ffffff;
-    --border-color: #333333;
-    --shadow-color: rgba(0, 0, 0, 0.3);
-    --hover-color: #2a2a2a;
-    --text-muted: #b0b0b0;
-    --select-bg: #2a2a2a;
-    --select-hover: #3a3a3a;
-}
+
 
 * {
     box-sizing: border-box;
@@ -76,21 +61,7 @@ body {
     margin-right: 10px;
 }
 
-.dark-mode-toggle {
-    background: rgba(255, 255, 255, 0.2);
-    border: none;
-    color: white;
-    padding: 12px;
-    border-radius: 50%;
-    cursor: pointer;
-    transition: var(--transition);
-    font-size: 1.2rem;
-}
 
-.dark-mode-toggle:hover {
-    background: rgba(255, 255, 255, 0.3);
-    transform: scale(1.1);
-}
 
 /* Form Container */
 .form-container {
@@ -123,6 +94,17 @@ body {
     box-shadow: 0 0 0 3px rgba(76, 175, 80, 0.1);
 }
 
+.checkbox-container {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.checkbox-container label {
+    font-size: 14px;
+    color: var(--text-muted);
+}
+
 .form-container select option {
     background-color: var(--surface-color);
     color: var(--font-color);
@@ -133,37 +115,7 @@ body {
     background-color: var(--hover-color);
 }
 
-/* Estilos específicos para modo oscuro en formulario */
-[data-theme="dark"] .form-container select {
-    background-color: var(--select-bg);
-    color: var(--font-color);
-}
 
-[data-theme="dark"] .form-container select option {
-    background-color: var(--select-bg);
-    color: var(--font-color);
-}
-
-[data-theme="dark"] .form-container select option:hover {
-    background-color: var(--select-hover);
-}
-
-[data-theme="dark"] .form-container select option:checked {
-    background-color: var(--primary-color);
-    color: white;
-}
-
-.form-container input::placeholder {
-    color: var(--text-muted);
-}
-
-[data-theme="dark"] .form-container input::placeholder {
-    color: #888888;
-}
-
-[data-theme="dark"] .search-box input::placeholder {
-    color: #888888;
-}
 
 .autocomplete {
     position: relative;
@@ -378,31 +330,7 @@ body {
     background-color: var(--hover-color);
 }
 
-/* Estilos específicos para modo oscuro */
-[data-theme="dark"] .filter-controls select {
-    background-color: var(--select-bg);
-    color: var(--font-color);
-    border-color: var(--border-color);
-}
 
-[data-theme="dark"] .filter-controls select:focus {
-    border-color: var(--primary-color);
-    background-color: var(--select-bg);
-}
-
-[data-theme="dark"] .filter-controls select option {
-    background-color: var(--select-bg);
-    color: var(--font-color);
-}
-
-[data-theme="dark"] .filter-controls select option:hover {
-    background-color: var(--select-hover);
-}
-
-[data-theme="dark"] .filter-controls select option:checked {
-    background-color: var(--primary-color);
-    color: white;
-}
 
 .filter-controls button {
     padding: 10px 20px;
@@ -431,6 +359,10 @@ body {
     box-shadow: 0 4px 6px var(--shadow-color);
     border: 1px solid var(--border-color);
     overflow: hidden;
+}
+
+.table-scroll-container {
+    overflow-x: auto;
 }
 
 .table-header {
@@ -507,13 +439,7 @@ th {
     opacity: 1;
 }
 
-[data-theme="dark"] .sortable i {
-    opacity: 0.8;
-}
 
-[data-theme="dark"] .sortable:hover i {
-    opacity: 1;
-}
 
 .estado {
     padding: 6px 12px;

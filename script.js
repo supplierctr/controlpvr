@@ -29,7 +29,6 @@ const aporteProveedorInput = document.getElementById('aporteProveedor');
 const searchInput = document.getElementById('searchInput');
 const estadoFilter = document.getElementById('estadoFilter');
 const proveedorFilter = document.getElementById('proveedorFilter');
-const darkModeToggle = document.getElementById('darkModeToggle');
 const registrosCount = document.getElementById('registrosCount');
 
 // Variables globales
@@ -39,7 +38,6 @@ let ordenActual = { columna: 'fecha', direccion: 'asc' };
 
 // Configuración inicial
 document.addEventListener('DOMContentLoaded', () => {
-    cargarTema();
     renderizarTabla();
     limpiarFormulario();
     cargarProveedoresDropdown();
@@ -50,9 +48,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // Configuración de eventos
 function configurarEventos() {
-    // Dark mode toggle
-    darkModeToggle.addEventListener('click', toggleDarkMode);
-    
     // Filtros
     searchInput.addEventListener('input', debounce(aplicarFiltros, 300));
     estadoFilter.addEventListener('change', aplicarFiltros);
@@ -71,27 +66,18 @@ function configurarEventos() {
     });
 }
 
-// Dark Mode
-function cargarTema() {
-    const tema = localStorage.getItem('tema') || 'light';
-    document.documentElement.setAttribute('data-theme', tema);
-    actualizarIconoTema(tema);
-}
+function togglePagado() {
+    const pagadoCheckbox = document.getElementById('pagadoCheckbox');
+    const pagadoInput = document.getElementById('pagado');
+    const importeInput = document.getElementById('importe');
 
-function toggleDarkMode() {
-    const temaActual = document.documentElement.getAttribute('data-theme');
-    const nuevoTema = temaActual === 'dark' ? 'light' : 'dark';
-    
-    document.documentElement.setAttribute('data-theme', nuevoTema);
-    localStorage.setItem('tema', nuevoTema);
-    actualizarIconoTema(nuevoTema);
-    
-    mostrarToast(`Modo ${nuevoTema === 'dark' ? 'oscuro' : 'claro'} activado`, 'info');
-}
-
-function actualizarIconoTema(tema) {
-    const icono = darkModeToggle.querySelector('i');
-    icono.className = tema === 'dark' ? 'fas fa-sun' : 'fas fa-moon';
+    if (pagadoCheckbox.checked) {
+        pagadoInput.value = importeInput.value;
+        pagadoInput.disabled = true;
+    } else {
+        pagadoInput.value = '';
+        pagadoInput.disabled = false;
+    }
 }
 
 // Funciones de persistencia
@@ -301,7 +287,8 @@ function agregarOActualizarProveedor() {
     const formaPago = formaPagoInput.value;
     const importe = parseFloat(importeInput.value);
     const fecha = fechaInput.value;
-    const pagado = parseFloat(pagadoInput.value) || 0;
+    const pagadoCheckbox = document.getElementById('pagadoCheckbox');
+    const pagado = pagadoCheckbox.checked ? importe : (parseFloat(pagadoInput.value) || 0);
     const currentIndex = parseInt(currentIndexInput.value, 10);
 
     // Validaciones mejoradas
@@ -391,6 +378,8 @@ function limpiarFormulario() {
     pagadoInput.value = '';
     currentIndexInput.value = '';
     btnBorrar.style.display = 'none';
+    document.getElementById('pagadoCheckbox').checked = false;
+    pagadoInput.disabled = false;
     
     // Limpiar validaciones visuales
     document.querySelectorAll('.form-container input, .form-container select').forEach(input => {
