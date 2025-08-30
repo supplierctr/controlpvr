@@ -1,3 +1,4 @@
+
 // Configuración de proveedores con días de vencimiento
 const proveedoresData = {
     "ACHURAS": 7, "ALFAJORES/OTROS": 7, "BARRAZA": 28, "BODEGA LA RURAL": 30,
@@ -13,6 +14,81 @@ const proveedoresData = {
     "MANTENIMIENTO/VARIOS": 15, "CRIOLLO": 28, "PAN MIGA/ARABE": 0,
     "FARMACIA": 0, "FERRETERIA": 0, "IMPRENTA": 0
 };
+
+// IndexedDB
+const DB_NAME = 'proveedoresDB';
+const STORE_NAME = 'proveedores';
+let db;
+
+function initDb() {
+    return new Promise((resolve, reject) => {
+        const request = indexedDB.open(DB_NAME, 1);
+
+        request.onupgradeneeded = (event) => {
+            const db = event.target.result;
+            if (!db.objectStoreNames.contains(STORE_NAME)) {
+                db.createObjectStore(STORE_NAME, { keyPath: 'id', autoIncrement: true });
+            }
+        };
+
+        request.onsuccess = (event) => {
+            db = event.target.result;
+            resolve(db);
+        };
+
+        request.onerror = (event) => {
+            reject('Error al abrir la base de datos', event.target.error);
+        };
+    });
+}
+
+function getProveedores() {
+    return new Promise((resolve, reject) => {
+        const transaction = db.transaction([STORE_NAME], 'readonly');
+        const store = transaction.objectStore(STORE_NAME);
+        const request = store.getAll();
+
+        request.onsuccess = (event) => {
+            resolve(event.target.result);
+        };
+
+        request.onerror = (event) => {
+            reject('Error al obtener los proveedores', event.target.error);
+        };
+    });
+}
+
+function saveProveedores() {
+    return new Promise((resolve, reject) => {
+        const transaction = db.transaction([STORE_NAME], 'readwrite');
+        const store = transaction.objectStore(STORE_NAME);
+        const clearRequest = store.clear();
+
+        clearRequest.onsuccess = () => {
+            let count = 0;
+            if (proveedores.length === 0) {
+                resolve();
+                return;
+            }
+            proveedores.forEach(proveedor => {
+                const addRequest = store.add(proveedor);
+                addRequest.onsuccess = () => {
+                    count++;
+                    if (count === proveedores.length) {
+                        resolve();
+                    }
+                };
+                addRequest.onerror = (event) => {
+                    reject('Error al guardar el proveedor', event.target.error);
+                };
+            });
+        };
+
+        clearRequest.onerror = (event) => {
+            reject('Error al limpiar la base de datos', event.target.error);
+        };
+    });
+}
 
 // Elementos del DOM
 const tablaProveedores = document.getElementById('tablaProveedores');
@@ -32,12 +108,14 @@ const proveedorFilter = document.getElementById('proveedorFilter');
 const registrosCount = document.getElementById('registrosCount');
 
 // Variables globales
-let proveedores = JSON.parse(localStorage.getItem('proveedores')) || [];
+let proveedores = [];
 let proveedoresFiltrados = [];
 let ordenActual = { columna: 'fecha', direccion: 'asc' };
 
 // Configuración inicial
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
+    await initDb();
+    proveedores = await getProveedores();
     renderizarTabla();
     limpiarFormulario();
     cargarProveedoresDropdown();
@@ -78,11 +156,6 @@ function togglePagado() {
         pagadoInput.value = '';
         pagadoInput.disabled = false;
     }
-}
-
-// Funciones de persistencia
-function guardarProveedores() {
-    localStorage.setItem('proveedores', JSON.stringify(proveedores));
 }
 
 // Funciones de validación
@@ -241,7 +314,7 @@ function renderizarTabla() {
             <td><i class="fas fa-dollar-sign"></i> ${p.importe.toLocaleString()}</td>
             <td><i class="fas fa-calendar"></i> ${formatearFecha(p.fecha)}</td>
             <td><i class="fas fa-money-bill-wave"></i> ${p.pagado ? p.pagado.toLocaleString() : '0'}</td>
-            <td><span class="estado ${estado.toLowerCase().replace(' ', '-')}">${estado}</span></td>
+            <td><span class="estado ${estado.toLowerCase().replace(' ', '-')} ">${estado}</span></td>
         `;
         tablaProveedores.appendChild(fila);
 
@@ -281,7 +354,7 @@ function actualizarFiltrosProveedores() {
 }
 
 // Funciones principales
-function agregarOActualizarProveedor() {
+async function agregarOActualizarProveedor() {
     const proveedor = proveedorInput.value.trim().toUpperCase();
     const numBol = numBolInput.value.trim();
     const formaPago = formaPagoInput.value;
@@ -330,7 +403,7 @@ function agregarOActualizarProveedor() {
             proveedores.push(data);
             mostrarToast('Proveedor agregado exitosamente', 'success');
         }
-        guardarProveedores();
+        await saveProveedores();
         renderizarTabla();
         limpiarFormulario();
     } else {
@@ -356,12 +429,12 @@ function cargarProveedorEnFormulario(index) {
     });
 }
 
-function borrarProveedor() {
+async function borrarProveedor() {
     const currentIndex = parseInt(currentIndexInput.value, 10);
     if (!isNaN(currentIndex)) {
         if (confirm('¿Está seguro de que desea eliminar este proveedor?')) {
             proveedores.splice(currentIndex, 1);
-            guardarProveedores();
+            await saveProveedores();
             renderizarTabla();
             limpiarFormulario();
             mostrarToast('Proveedor eliminado exitosamente', 'success');
@@ -398,7 +471,7 @@ function cargarProveedoresDropdown() {
     });
 }
 
-function aportarDinero() {
+async function aportarDinero() {
     let montoAporte = parseFloat(aporteMontoInput.value);
     const selectedProvider = aporteProveedorInput.value;
 
@@ -441,7 +514,7 @@ function aportarDinero() {
     }
 
     if (totalPagadoEnAporte > 0) {
-        guardarProveedores();
+        await saveProveedores();
         renderizarTabla();
         mostrarToast(`${resumenPagos}\nTotal pagado: $${totalPagadoEnAporte.toLocaleString()}`, 'success');
     }
@@ -450,10 +523,10 @@ function aportarDinero() {
     aporteProveedorInput.value = '';
 }
 
-function borrarTodo() {
+async function borrarTodo() {
     if (confirm('¿Está seguro de que desea borrar toda la información guardada? Esta acción no se puede deshacer.')) {
         proveedores = [];
-        guardarProveedores();
+        await saveProveedores();
         renderizarTabla();
         cargarProveedoresDropdown();
         limpiarFiltros();
@@ -503,12 +576,12 @@ function descargarArchivo(contenido, nombreArchivo, tipo) {
     document.body.removeChild(link);
 }
 
-function cargarTxt(event) {
+async function cargarTxt(event) {
     const file = event.target.files[0];
     if (!file) return;
 
     const reader = new FileReader();
-    reader.onload = function(e) {
+    reader.onload = async function(e) {
         const content = e.target.result;
         const lineas = content.split('\n').filter(linea => linea.trim() !== '');
         if (lineas.length > 1) {
@@ -529,7 +602,7 @@ function cargarTxt(event) {
                 }
             }
             proveedores = nuevosProveedores;
-            guardarProveedores();
+            await saveProveedores();
             renderizarTabla();
             mostrarToast('Respaldo cargado exitosamente.', 'success');
         }
