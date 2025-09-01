@@ -11,48 +11,83 @@
     <div class="container">
         <div class="header">
             <h1><i class="fas fa-truck"></i> Control de Proveedores</h1>
-            
+            <button id="btnTogglePanel" class="toggle-panel-btn">
+                <i class="fas fa-bars"></i> Menú
+            </button>
         </div>
 
-        <div class="form-container">
-            <input type="hidden" id="currentIndex">
-            <div class="autocomplete">
-                <input id="proveedor" type="text" placeholder="Proveedor" required>
-                <i class="fas fa-search autocomplete-icon"></i>
+        <!-- Modo Edición de Proveedores (inicialmente oculto) -->
+        <div id="modoEdicionProveedores" class="modo-edicion-proveedores" style="display: none;">
+            <div class="edicion-header">
+                <h2><i class="fas fa-edit"></i> Edición de Proveedores</h2>
+                <button id="btnCerrarEdicion" class="btn-cerrar-edicion-principal">
+                    <i class="fas fa-times"></i> Cerrar Edición
+                </button>
             </div>
-            <input type="number" id="numBol" placeholder="N° Boleta (5 dígitos)" oninput="this.value=this.value.slice(0,5)" required>
-            <select id="formaPago" required>
-                <option value="">Forma de Pago</option>
-                <option value="Efectivo">Efectivo</option>
-                <option value="Transferencia">Transferencia</option>
-                <option value="Cheques">Cheques</option>
-            </select>
-            <input type="number" id="importe" placeholder="Importe" step="0.01" min="0" required>
-            <input type="date" id="fecha" required>
-            <input type="number" id="pagado" placeholder="Pagado" step="0.01" min="0">
-            <div class="checkbox-container">
-                <input type="checkbox" id="pagadoCheckbox" onchange="togglePagado()">
-                <label for="pagadoCheckbox">Pagado Total</label>
-            </div>
-            <div class="form-buttons">
-                <button id="btnAgregar" onclick="agregarOActualizarProveedor()">
-                    <i class="fas fa-plus"></i> Agregar / Actualizar
-                </button>
-                <button id="btnBorrar" onclick="borrarProveedor()" style="display:none;">
-                    <i class="fas fa-trash"></i> Borrar
-                </button>
-                <button id="btnGuardarTxt" onclick="guardarTxt()">
-                    <i class="fas fa-file-alt"></i> Guardar TXT
-                </button>
-                <button id="btnGuardarExcel" onclick="guardarExcel()">
-                    <i class="fas fa-file-excel"></i> Guardar Excel
-                </button>
-                <button id="btnCargarTxt" onclick="document.getElementById('fileInput').click()">
-                    <i class="fas fa-upload"></i> Cargar Respaldo
-                </button>
-                <input type="file" id="fileInput" style="display:none" onchange="cargarTxt(event)" accept=".txt">
+            
+            <div class="edicion-content">
+                <!-- Formulario para agregar nuevos proveedores -->
+                <div class="formulario-nuevo-proveedor">
+                    <h3><i class="fas fa-plus-circle"></i> Agregar Nuevo Proveedor</h3>
+                    <div class="formulario-proveedor-grid">
+                        <input type="text" id="nombreNuevoProveedor" placeholder="Nombre del proveedor" class="form-input">
+                        <input type="number" id="diasNuevoProveedor" placeholder="Días de vencimiento" class="form-input">
+                        <button id="btnAgregarNuevoProveedor" class="btn-agregar-nuevo">
+                            <i class="fas fa-plus"></i> Agregar Proveedor
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Buscador y lista de proveedores -->
+                <div class="proveedores-edicion-container">
+                    <div class="buscador-proveedores">
+                        <input type="text" id="buscadorProveedores" placeholder="Buscar proveedores..." class="form-input">
+                        <i class="fas fa-search buscador-icono"></i>
+                    </div>
+                    
+                    <div class="lista-proveedores-edicion">
+                        <div id="listaProveedoresEdicion" class="proveedores-edicion-lista">
+                            <!-- Los proveedores se cargarán aquí dinámicamente -->
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
+
+        <div id="contenidoPrincipal" class="contenido-principal">
+            <div class="form-container">
+                <input type="hidden" id="currentIndex">
+                <div class="autocomplete">
+                    <input id="proveedor" type="text" placeholder="Proveedor" required>
+                    <i class="fas fa-search autocomplete-icon"></i>
+                </div>
+                <input type="number" id="numBol" placeholder="N° Boleta (5 dígitos)" oninput="this.value=this.value.slice(0,5)" required>
+                <select id="formaPago" required>
+                    <option value="">Forma de Pago</option>
+                    <option value="Efectivo">Efectivo</option>
+                    <option value="Transferencia">Transferencia</option>
+                    <option value="Cheques">Cheques</option>
+                </select>
+                <input type="number" id="importe" placeholder="Importe" step="0.01" min="0" required>
+                <input type="date" id="fecha" required>
+                <input type="number" id="pagado" placeholder="Pagado" step="0.01" min="0">
+                <div class="checkbox-container">
+                    <input type="checkbox" id="pagadoCheckbox" onchange="togglePagado()">
+                    <label for="pagadoCheckbox">Pagado Total</label>
+                </div>
+                <div class="form-buttons">
+                    <button id="btnAgregar" onclick="agregarOActualizarProveedor()">
+                        <i class="fas fa-plus"></i> Agregar / Actualizar
+                    </button>
+                    <button id="btnLimpiar" onclick="limpiarFormulario()">
+                        <i class="fas fa-broom"></i> Limpiar
+                    </button>
+                    <button id="btnBorrar" onclick="borrarProveedor()" style="display:none;">
+                        <i class="fas fa-trash"></i> Borrar
+                    </button>
+                    <input type="file" id="fileInput" style="display:none" onchange="cargarTxt(event)" accept=".txt">
+                </div>
+            </div>
 
         <div class="aporte-container">
             <h2><i class="fas fa-money-bill-wave"></i> Aporte de Proveedor</h2>
@@ -143,11 +178,33 @@
                 <h3><i class="fas fa-calculator"></i> Total</h3>
                 <p id="totalGeneral">$0</p>
             </div>
-            <div class="borrar-todo-container">
-                <button id="btnBorrarTodo" onclick="borrarTodo()">
-                    <i class="fas fa-trash-alt"></i> Borrar Todo
-                </button>
-            </div>
+        </div>
+    </div>
+    
+    <!-- Panel deslizante -->
+    <div id="sidePanel" class="side-panel">
+        <div class="panel-header">
+            <h2><i class="fas fa-cogs"></i> Herramientas</h2>
+            <button id="btnClosePanel" class="close-panel-btn">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="panel-content">
+            <button id="btnVerProveedores" class="panel-button">
+                <i class="fas fa-list"></i> Ver Proveedores
+            </button>
+            <button id="btnGuardarTxt" onclick="guardarTxt()" class="panel-button">
+                <i class="fas fa-file-alt"></i> Guardar TXT
+            </button>
+            <button id="btnGuardarExcel" onclick="guardarExcel()" class="panel-button">
+                <i class="fas fa-file-excel"></i> Guardar Excel
+            </button>
+            <button id="btnCargarTxt" onclick="document.getElementById('fileInput').click()" class="panel-button">
+                <i class="fas fa-upload"></i> Cargar Respaldo
+            </button>
+            <button id="btnBorrarTodo" onclick="borrarTodo()" class="panel-button borrar-todo-button">
+                <i class="fas fa-trash-alt"></i> Borrar Todo
+            </button>
         </div>
     </div>
 
@@ -155,5 +212,6 @@
     <div id="toast" class="toast"></div>
 
     <script src="script.js"></script>
+</div>
 </body>
 </html>

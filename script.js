@@ -1,4 +1,3 @@
-
 // Configuración de proveedores con días de vencimiento
 const proveedoresData = {
     "ACHURAS": 7, "ALFAJORES/OTROS": 7, "BARRAZA": 28, "BODEGA LA RURAL": 30,
@@ -15,6 +14,29 @@ const proveedoresData = {
     "FARMACIA": 0, "FERRETERIA": 0, "IMPRENTA": 0
 };
 
+// Elementos del DOM
+const tablaProveedores = document.getElementById('tablaProveedores');
+const proveedorInput = document.getElementById('proveedor');
+const numBolInput = document.getElementById('numBol');
+const formaPagoInput = document.getElementById('formaPago');
+const importeInput = document.getElementById('importe');
+const fechaInput = document.getElementById('fecha');
+const pagadoInput = document.getElementById('pagado');
+const currentIndexInput = document.getElementById('currentIndex');
+const btnBorrar = document.getElementById('btnBorrar');
+const aporteMontoInput = document.getElementById('aporteMonto');
+const aporteProveedorInput = document.getElementById('aporteProveedor');
+const searchInput = document.getElementById('searchInput');
+const estadoFilter = document.getElementById('estadoFilter');
+const proveedorFilter = document.getElementById('proveedorFilter');
+const registrosCount = document.getElementById('registrosCount');
+
+// Elementos del DOM adicionales
+const btnTogglePanel = document.getElementById('btnTogglePanel');
+const sidePanel = document.getElementById('sidePanel');
+const btnClosePanel = document.getElementById('btnClosePanel');
+const btnVerProveedores = document.getElementById('btnVerProveedores');
+
 // IndexedDB
 const DB_NAME = 'proveedoresDB';
 const STORE_NAME = 'proveedores';
@@ -23,19 +45,16 @@ let db;
 function initDb() {
     return new Promise((resolve, reject) => {
         const request = indexedDB.open(DB_NAME, 1);
-
         request.onupgradeneeded = (event) => {
             const db = event.target.result;
             if (!db.objectStoreNames.contains(STORE_NAME)) {
                 db.createObjectStore(STORE_NAME, { keyPath: 'id', autoIncrement: true });
             }
         };
-
         request.onsuccess = (event) => {
             db = event.target.result;
             resolve(db);
         };
-
         request.onerror = (event) => {
             reject('Error al abrir la base de datos', event.target.error);
         };
@@ -47,11 +66,9 @@ function getProveedores() {
         const transaction = db.transaction([STORE_NAME], 'readonly');
         const store = transaction.objectStore(STORE_NAME);
         const request = store.getAll();
-
         request.onsuccess = (event) => {
             resolve(event.target.result);
         };
-
         request.onerror = (event) => {
             reject('Error al obtener los proveedores', event.target.error);
         };
@@ -63,7 +80,6 @@ function saveProveedores() {
         const transaction = db.transaction([STORE_NAME], 'readwrite');
         const store = transaction.objectStore(STORE_NAME);
         const clearRequest = store.clear();
-
         clearRequest.onsuccess = () => {
             let count = 0;
             if (proveedores.length === 0) {
@@ -83,29 +99,11 @@ function saveProveedores() {
                 };
             });
         };
-
         clearRequest.onerror = (event) => {
             reject('Error al limpiar la base de datos', event.target.error);
         };
     });
 }
-
-// Elementos del DOM
-const tablaProveedores = document.getElementById('tablaProveedores');
-const proveedorInput = document.getElementById('proveedor');
-const numBolInput = document.getElementById('numBol');
-const formaPagoInput = document.getElementById('formaPago');
-const importeInput = document.getElementById('importe');
-const fechaInput = document.getElementById('fecha');
-const pagadoInput = document.getElementById('pagado');
-const currentIndexInput = document.getElementById('currentIndex');
-const btnBorrar = document.getElementById('btnBorrar');
-const aporteMontoInput = document.getElementById('aporteMonto');
-const aporteProveedorInput = document.getElementById('aporteProveedor');
-const searchInput = document.getElementById('searchInput');
-const estadoFilter = document.getElementById('estadoFilter');
-const proveedorFilter = document.getElementById('proveedorFilter');
-const registrosCount = document.getElementById('registrosCount');
 
 // Variables globales
 let proveedores = [];
@@ -126,20 +124,31 @@ document.addEventListener('DOMContentLoaded', async () => {
 
 // Configuración de eventos
 function configurarEventos() {
-    // Filtros
     searchInput.addEventListener('input', debounce(aplicarFiltros, 300));
     estadoFilter.addEventListener('change', aplicarFiltros);
     proveedorFilter.addEventListener('change', aplicarFiltros);
-    
-    // Validaciones en tiempo real
     importeInput.addEventListener('input', validarImporte);
     pagadoInput.addEventListener('input', validarPagado);
     fechaInput.addEventListener('change', validarFecha);
-    
-    // Enter key en formulario
     document.addEventListener('keypress', (e) => {
         if (e.key === 'Enter' && e.target.closest('.form-container')) {
             agregarOActualizarProveedor();
+        }
+    });
+    if (btnTogglePanel) {
+        btnTogglePanel.addEventListener('click', togglePanel);
+    }
+    if (btnClosePanel) {
+        btnClosePanel.addEventListener('click', togglePanel);
+    }
+    if (btnVerProveedores) {
+        btnVerProveedores.addEventListener('click', mostrarTodosLosProveedores);
+    }
+    document.addEventListener('click', (e) => {
+        if (sidePanel && sidePanel.classList.contains('active') && 
+            !sidePanel.contains(e.target) && 
+            btnTogglePanel && !btnTogglePanel.contains(e.target)) {
+            togglePanel();
         }
     });
 }
@@ -148,13 +157,14 @@ function togglePagado() {
     const pagadoCheckbox = document.getElementById('pagadoCheckbox');
     const pagadoInput = document.getElementById('pagado');
     const importeInput = document.getElementById('importe');
-
-    if (pagadoCheckbox.checked) {
-        pagadoInput.value = importeInput.value;
-        pagadoInput.disabled = true;
-    } else {
-        pagadoInput.value = '';
-        pagadoInput.disabled = false;
+    if (pagadoCheckbox && pagadoInput && importeInput) {
+        if (pagadoCheckbox.checked) {
+            pagadoInput.value = importeInput.value;
+            pagadoInput.disabled = true;
+        } else {
+            pagadoInput.value = '';
+            pagadoInput.disabled = false;
+        }
     }
 }
 
@@ -170,7 +180,6 @@ function validarImporte() {
 function validarPagado() {
     const valor = parseFloat(pagadoInput.value);
     const importe = parseFloat(importeInput.value);
-    
     if (valor < 0) {
         pagadoInput.value = 0;
         mostrarToast('El monto pagado no puede ser negativo', 'warning');
@@ -184,7 +193,6 @@ function validarFecha() {
     const fechaSeleccionada = new Date(fechaInput.value);
     const hoy = new Date();
     hoy.setHours(0, 0, 0, 0);
-    
     if (fechaSeleccionada > hoy) {
         mostrarToast('La fecha no puede ser futura', 'warning');
         fechaInput.value = '';
@@ -209,22 +217,17 @@ function aplicarFiltros() {
     const busqueda = searchInput.value.toLowerCase();
     const estadoSeleccionado = estadoFilter.value;
     const proveedorSeleccionado = proveedorFilter.value;
-    
     proveedoresFiltrados = proveedores.filter(p => {
         const cumpleBusqueda = !busqueda || 
             p.proveedor.toLowerCase().includes(busqueda) ||
             p.numBol.includes(busqueda) ||
             p.formaPago.toLowerCase().includes(busqueda);
-        
         const cumpleEstado = !estadoSeleccionado || 
             calcularEstado(p.fecha, proveedoresData[p.proveedor], p.importe, p.pagado) === estadoSeleccionado;
-        
         const cumpleProveedor = !proveedorSeleccionado || 
             p.proveedor === proveedorSeleccionado;
-        
         return cumpleBusqueda && cumpleEstado && cumpleProveedor;
     });
-    
     renderizarTabla();
 }
 
@@ -245,7 +248,6 @@ function ordenarTabla(columna) {
         ordenActual.columna = columna;
         ordenActual.direccion = 'asc';
     }
-    
     renderizarTabla();
     actualizarIconosOrdenamiento();
 }
@@ -255,7 +257,6 @@ function actualizarIconosOrdenamiento() {
     headers.forEach(icono => {
         icono.className = 'fas fa-sort';
     });
-    
     const headerActual = document.querySelector(`th[onclick="ordenarTabla('${ordenActual.columna}')"] i`);
     if (headerActual) {
         headerActual.className = `fas fa-sort-${ordenActual.direccion === 'asc' ? 'up' : 'down'}`;
@@ -265,11 +266,8 @@ function actualizarIconosOrdenamiento() {
 // Función principal de renderizado
 function renderizarTabla() {
     const datosAMostrar = proveedoresFiltrados.length > 0 ? proveedoresFiltrados : proveedores;
-    
-    // Ordenar datos
     datosAMostrar.sort((a, b) => {
         let valorA, valorB;
-        
         switch (ordenActual.columna) {
             case 'proveedor':
             case 'numBol':
@@ -294,15 +292,14 @@ function renderizarTabla() {
                 valorA = a[ordenActual.columna];
                 valorB = b[ordenActual.columna];
         }
-        
         if (valorA < valorB) return ordenActual.direccion === 'asc' ? -1 : 1;
         if (valorA > valorB) return ordenActual.direccion === 'asc' ? 1 : -1;
         return 0;
     });
-    
-    tablaProveedores.innerHTML = '';
+    if (tablaProveedores) {
+        tablaProveedores.innerHTML = '';
+    }
     let totalVencidas = 0, totalNoVencidas = 0, totalPagado = 0, totalGeneral = 0;
-
     datosAMostrar.forEach((p, index) => {
         const estado = calcularEstado(p.fecha, proveedoresData[p.proveedor], p.importe, p.pagado);
         const fila = document.createElement('tr');
@@ -314,41 +311,51 @@ function renderizarTabla() {
             <td><i class="fas fa-dollar-sign"></i> ${p.importe.toLocaleString()}</td>
             <td><i class="fas fa-calendar"></i> ${formatearFecha(p.fecha)}</td>
             <td><i class="fas fa-money-bill-wave"></i> ${p.pagado ? p.pagado.toLocaleString() : '0'}</td>
-            <td><span class="estado ${estado.toLowerCase().replace(' ', '-')} ">${estado}</span></td>
+            <td><span class="estado ${estado.toLowerCase().replace(' ', '-')}">${estado}</span></td>
         `;
-        tablaProveedores.appendChild(fila);
-
+        if (tablaProveedores) {
+            tablaProveedores.appendChild(fila);
+        }
         totalGeneral += p.importe;
         if (p.pagado) totalPagado += p.pagado;
         const restante = p.importe - (p.pagado || 0);
         if (estado === 'Vencido') totalVencidas += restante;
         if (estado === 'No Vencido' || estado === 'Pendiente') totalNoVencidas += restante;
     });
-
-    document.getElementById('totalVencidas').textContent = `$${totalVencidas.toLocaleString()}`;
-    document.getElementById('totalNoVencidas').textContent = `$${totalNoVencidas.toLocaleString()}`;
-    document.getElementById('totalPagado').textContent = `$${totalPagado.toLocaleString()}`;
-    document.getElementById('totalGeneral').textContent = `$${totalGeneral.toLocaleString()}`;
-    
+    if (document.getElementById('totalVencidas')) {
+        document.getElementById('totalVencidas').textContent = `$${totalVencidas.toLocaleString()}`;
+    }
+    if (document.getElementById('totalNoVencidas')) {
+        document.getElementById('totalNoVencidas').textContent = `$${totalNoVencidas.toLocaleString()}`;
+    }
+    if (document.getElementById('totalPagado')) {
+        document.getElementById('totalPagado').textContent = `$${totalPagado.toLocaleString()}`;
+    }
+    if (document.getElementById('totalGeneral')) {
+        document.getElementById('totalGeneral').textContent = `$${totalGeneral.toLocaleString()}`;
+    }
     actualizarContadorRegistros();
     actualizarFiltrosProveedores();
 }
 
 function actualizarContadorRegistros() {
     const total = proveedoresFiltrados.length > 0 ? proveedoresFiltrados.length : proveedores.length;
-    registrosCount.textContent = `${total} registro${total !== 1 ? 's' : ''}`;
+    if (registrosCount) {
+        registrosCount.textContent = `${total} registro${total !== 1 ? 's' : ''}`;
+    }
 }
 
 function actualizarFiltrosProveedores() {
     const proveedoresUnicos = [...new Set(proveedores.map(p => p.proveedor))];
     const opcionesActuales = Array.from(proveedorFilter.options).map(opt => opt.value);
-    
     proveedoresUnicos.forEach(proveedor => {
         if (!opcionesActuales.includes(proveedor)) {
             const option = document.createElement('option');
             option.value = proveedor;
             option.textContent = proveedor;
-            proveedorFilter.appendChild(option);
+            if (proveedorFilter) {
+                proveedorFilter.appendChild(option);
+            }
         }
     });
 }
@@ -361,39 +368,31 @@ async function agregarOActualizarProveedor() {
     const importe = parseFloat(importeInput.value);
     const fecha = fechaInput.value;
     const pagadoCheckbox = document.getElementById('pagadoCheckbox');
-    const pagado = pagadoCheckbox.checked ? importe : (parseFloat(pagadoInput.value) || 0);
+    const pagado = pagadoCheckbox && pagadoCheckbox.checked ? importe : (parseFloat(pagadoInput.value) || 0);
     const currentIndex = parseInt(currentIndexInput.value, 10);
-
-    // Validaciones mejoradas
     if (!proveedoresData.hasOwnProperty(proveedor)) {
         mostrarToast('Proveedor no válido. Por favor, seleccione un proveedor de la lista.', 'error');
         return;
     }
-
     if (numBol.length !== 5) {
         mostrarToast('El número de boleta debe tener exactamente 5 dígitos.', 'error');
         return;
     }
-
     if (importe <= 0) {
         mostrarToast('El importe debe ser mayor a 0.', 'error');
         return;
     }
-
     if (pagado > importe) {
         mostrarToast('El monto pagado no puede exceder el importe.', 'error');
         return;
     }
-
     const isDuplicate = proveedores.some((p, index) => 
         p.proveedor === proveedor && p.numBol === numBol && index !== currentIndex
     );
-
     if (isDuplicate) {
         mostrarToast('Ya existe una boleta con ese número para este proveedor.', 'error');
         return;
     }
-
     if (proveedor && numBol && formaPago && !isNaN(importe) && fecha) {
         const data = { proveedor, numBol, formaPago, importe, fecha, pagado };
         if (!isNaN(currentIndex)) {
@@ -413,20 +412,21 @@ async function agregarOActualizarProveedor() {
 
 function cargarProveedorEnFormulario(index) {
     const p = proveedores[index];
-    proveedorInput.value = p.proveedor;
-    numBolInput.value = p.numBol;
-    formaPagoInput.value = p.formaPago;
-    importeInput.value = p.importe;
-    fechaInput.value = p.fecha;
-    pagadoInput.value = p.pagado || '';
-    currentIndexInput.value = index;
-    btnBorrar.style.display = 'block';
-    
-    // Scroll suave al formulario
-    document.querySelector('.form-container').scrollIntoView({ 
-        behavior: 'smooth', 
-        block: 'center' 
-    });
+    if (proveedorInput) proveedorInput.value = p.proveedor;
+    if (numBolInput) numBolInput.value = p.numBol;
+    if (formaPagoInput) formaPagoInput.value = p.formaPago;
+    if (importeInput) importeInput.value = p.importe;
+    if (fechaInput) fechaInput.value = p.fecha;
+    if (pagadoInput) pagadoInput.value = p.pagado || '';
+    if (currentIndexInput) currentIndexInput.value = index;
+    if (btnBorrar) btnBorrar.style.display = 'block';
+    const formContainer = document.querySelector('.form-container');
+    if (formContainer) {
+        formContainer.scrollIntoView({ 
+            behavior: 'smooth', 
+            block: 'center' 
+        });
+    }
 }
 
 async function borrarProveedor() {
@@ -443,84 +443,76 @@ async function borrarProveedor() {
 }
 
 function limpiarFormulario() {
-    proveedorInput.value = '';
-    numBolInput.value = '';
-    formaPagoInput.value = '';
-    importeInput.value = '';
-    fechaInput.value = '';
-    pagadoInput.value = '';
-    currentIndexInput.value = '';
-    btnBorrar.style.display = 'none';
-    document.getElementById('pagadoCheckbox').checked = false;
-    pagadoInput.disabled = false;
-    
-    // Limpiar validaciones visuales
-    document.querySelectorAll('.form-container input, .form-container select').forEach(input => {
+    if (proveedorInput) proveedorInput.value = '';
+    if (numBolInput) numBolInput.value = '';
+    if (formaPagoInput) formaPagoInput.value = '';
+    if (importeInput) importeInput.value = '';
+    if (fechaInput) fechaInput.value = '';
+    if (pagadoInput) pagadoInput.value = '';
+    if (currentIndexInput) currentIndexInput.value = '';
+    if (btnBorrar) btnBorrar.style.display = 'none';
+    const pagadoCheckbox = document.getElementById('pagadoCheckbox');
+    if (pagadoCheckbox) pagadoCheckbox.checked = false;
+    if (pagadoInput) pagadoInput.disabled = false;
+    const formInputs = document.querySelectorAll('.form-container input, .form-container select');
+    formInputs.forEach(input => {
         input.classList.remove('error');
     });
 }
 
 function cargarProveedoresDropdown() {
     const proveedoresUnicos = [...new Set(proveedores.map(p => p.proveedor))];
-    aporteProveedorInput.innerHTML = '<option value="">Seleccione un proveedor</option>';
+    if (aporteProveedorInput) {
+        aporteProveedorInput.innerHTML = '<option value="">Seleccione un proveedor</option>';
+    }
     proveedoresUnicos.forEach(p => {
         const option = document.createElement('option');
         option.value = p;
         option.textContent = p;
-        aporteProveedorInput.appendChild(option);
+        if (aporteProveedorInput) {
+            aporteProveedorInput.appendChild(option);
+        }
     });
 }
 
 async function aportarDinero() {
     let montoAporte = parseFloat(aporteMontoInput.value);
     const selectedProvider = aporteProveedorInput.value;
-
     if (!selectedProvider) {
         mostrarToast('Por favor, seleccione un proveedor.', 'error');
         return;
     }
-
     if (isNaN(montoAporte) || montoAporte <= 0) {
         mostrarToast('Por favor, ingrese un monto de aporte válido.', 'error');
         return;
     }
-
     const facturasPendientes = proveedores
         .map((p, index) => ({...p, originalIndex: index}))
         .filter(p => p.proveedor === selectedProvider && (p.pagado || 0) < p.importe)
         .sort((a, b) => new Date(a.fecha) - new Date(b.fecha));
-
     if (facturasPendientes.length === 0) {
         mostrarToast(`No hay facturas pendientes para pagar para ${selectedProvider}.`, 'warning');
         return;
     }
-
     let totalPagadoEnAporte = 0;
-    let resumenPagos = `Resumen de pagos para ${selectedProvider}:\n`;
-
+    let resumenPagos = `Resumen de pagos para ${selectedProvider}:\\n`;
     for (const factura of facturasPendientes) {
         if (montoAporte <= 0) break;
-
         const deuda = factura.importe - (factura.pagado || 0);
         const montoAPagar = Math.min(montoAporte, deuda);
-
         const pOriginal = proveedores[factura.originalIndex];
         pOriginal.pagado = (pOriginal.pagado || 0) + montoAPagar;
-        
         montoAporte -= montoAPagar;
         totalPagadoEnAporte += montoAPagar;
-
-        resumenPagos += `- Boleta N°${factura.numBol}: $${montoAPagar.toLocaleString()} pagados.\n`;
+        resumenPagos += `- Boleta N°${factura.numBol}: $${montoAPagar.toLocaleString()} pagados.\\n`;
     }
-
     if (totalPagadoEnAporte > 0) {
         await saveProveedores();
         renderizarTabla();
-        mostrarToast(`${resumenPagos}\nTotal pagado: $${totalPagadoEnAporte.toLocaleString()}`, 'success');
+        mostrarToast(`${resumenPagos}\\nTotal pagado: $${totalPagadoEnAporte.toLocaleString()}`, 'success');
     }
-
-    aporteMontoInput.value = '';
-    aporteProveedorInput.value = '';
+    if (aporteMontoInput) aporteMontoInput.value = '';
+    if (aporteProveedorInput) aporteProveedorInput.value = '';
 }
 
 async function borrarTodo() {
@@ -536,32 +528,27 @@ async function borrarTodo() {
 
 // Funciones de exportación
 function guardarTxt() {
-    let contenido = "PROVEEDOR\tN° BOLETA\tFORMA PAGO\tIMPORTE\tFECHA\tPAGADO\tESTADO\n";
+    let contenido = "PROVEEDOR\\tN° BOLETA\\tFORMA PAGO\\tIMPORTE\\tFECHA\\tPAGADO\\tESTADO\\n";
     proveedores.forEach(p => {
         const estado = calcularEstado(p.fecha, proveedoresData[p.proveedor], p.importe, p.pagado);
-        contenido += `${p.proveedor}\t${p.numBol}\t${p.formaPago}\t${p.importe}\t${p.fecha}\t${p.pagado || 0}\t${estado}\n`;
+        contenido += `${p.proveedor}\\t${p.numBol}\\t${p.formaPago}\\t${p.importe}\\t${p.fecha}\\t${p.pagado || 0}\\t${estado}\\n`;
     });
-
     const hoy = new Date();
     const fechaFormato = `${hoy.getDate()}-${hoy.getMonth() + 1}-${hoy.getFullYear()}`;
     const nombreArchivo = `control-proveedores-${fechaFormato}.txt`;
-
     descargarArchivo(contenido, nombreArchivo, 'text/plain');
     mostrarToast('Archivo TXT descargado exitosamente', 'success');
 }
 
 function guardarExcel() {
-    // Crear contenido CSV (compatible con Excel)
-    let contenido = "Proveedor,N° Boleta,Forma de Pago,Importe,Fecha,Pagado,Estado\n";
+    let contenido = "Proveedor,N° Boleta,Forma de Pago,Importe,Fecha,Pagado,Estado\\n";
     proveedores.forEach(p => {
         const estado = calcularEstado(p.fecha, proveedoresData[p.proveedor], p.importe, p.pagado);
-        contenido += `"${p.proveedor}","${p.numBol}","${p.formaPago}",${p.importe},"${p.fecha}",${p.pagado || 0},"${estado}"\n`;
+        contenido += `"${p.proveedor}","${p.numBol}","${p.formaPago}",${p.importe},"${p.fecha}",${p.pagado || 0},"${estado}"\\n`;
     });
-
     const hoy = new Date();
     const fechaFormato = `${hoy.getDate()}-${hoy.getMonth() + 1}-${hoy.getFullYear()}`;
     const nombreArchivo = `control-proveedores-${fechaFormato}.csv`;
-
     descargarArchivo(contenido, nombreArchivo, 'text/csv');
     mostrarToast('Archivo Excel (CSV) descargado exitosamente', 'success');
 }
@@ -579,15 +566,14 @@ function descargarArchivo(contenido, nombreArchivo, tipo) {
 async function cargarTxt(event) {
     const file = event.target.files[0];
     if (!file) return;
-
     const reader = new FileReader();
     reader.onload = async function(e) {
         const content = e.target.result;
-        const lineas = content.split('\n').filter(linea => linea.trim() !== '');
+        const lineas = content.split('\\n').filter(linea => linea.trim() !== '');
         if (lineas.length > 1) {
             const nuevosProveedores = [];
             for (let i = 1; i < lineas.length; i++) {
-                const columnas = lineas[i].split('\t');
+                const columnas = lineas[i].split('\\t');
                 if (columnas.length >= 6) {
                     const proveedor = columnas[0];
                     const numBol = columnas[1];
@@ -595,7 +581,6 @@ async function cargarTxt(event) {
                     const importe = parseFloat(columnas[3]);
                     const fecha = columnas[4];
                     const pagado = parseFloat(columnas[5]);
-                    
                     if (proveedoresData.hasOwnProperty(proveedor)) {
                         nuevosProveedores.push({ proveedor, numBol, formaPago, importe, fecha, pagado });
                     }
@@ -608,7 +593,7 @@ async function cargarTxt(event) {
         }
     };
     reader.readAsText(file);
-    event.target.value = ''; // Limpiar input
+    if (event.target) event.target.value = '';
 }
 
 // Funciones de utilidad
@@ -636,17 +621,19 @@ function debounce(func, wait) {
 // Sistema de notificaciones Toast
 function mostrarToast(mensaje, tipo = 'info') {
     const toast = document.getElementById('toast');
-    toast.textContent = mensaje;
-    toast.className = `toast ${tipo} show`;
-    
-    setTimeout(() => {
-        toast.classList.remove('show');
-    }, 4000);
+    if (toast) {
+        toast.textContent = mensaje;
+        toast.className = 'toast ' + tipo + ' show';
+        setTimeout(() => {
+            toast.classList.remove('show');
+        }, 4000);
+    }
 }
 
 // Autocomplete mejorado
 function autocomplete(inp, arr) {
     let currentFocus;
+    if (!inp) return;
     inp.addEventListener("input", function(e) {
         let a, b, i, val = this.value;
         closeAllLists();
@@ -673,13 +660,13 @@ function autocomplete(inp, arr) {
     inp.addEventListener("keydown", function(e) {
         let x = document.getElementById(this.id + "autocomplete-list");
         if (x) x = x.getElementsByTagName("div");
-        if (e.keyCode == 40) { // down
+        if (e.keyCode == 40) {
             currentFocus++;
             addActive(x);
-        } else if (e.keyCode == 38) { // up
+        } else if (e.keyCode == 38) {
             currentFocus--;
             addActive(x);
-        } else if (e.keyCode == 13) { // enter
+        } else if (e.keyCode == 13) {
             e.preventDefault();
             if (currentFocus > -1) {
                 if (x) x[currentFocus].click();
@@ -709,4 +696,194 @@ function autocomplete(inp, arr) {
     document.addEventListener("click", function (e) {
         closeAllLists(e.target);
     });
+}
+
+// Funciones del panel deslizante
+function togglePanel() {
+    if (sidePanel) {
+        sidePanel.classList.toggle('active');
+    }
+}
+
+function mostrarTodosLosProveedores() {
+    togglePanel();
+    mostrarModoEdicionProveedores();
+}
+
+function mostrarModoEdicionProveedores() {
+    const contenidoPrincipal = document.getElementById('contenidoPrincipal');
+    const modoEdicion = document.getElementById('modoEdicionProveedores');
+    const btnCerrarEdicion = document.getElementById('btnCerrarEdicion');
+    if (contenidoPrincipal && modoEdicion) {
+        contenidoPrincipal.style.display = 'none';
+        modoEdicion.style.display = 'block';
+        cargarListaProveedoresEdicion();
+        if (btnCerrarEdicion) {
+            btnCerrarEdicion.addEventListener('click', cerrarModoEdicionProveedores);
+        }
+        const buscador = document.getElementById('buscadorProveedores');
+        if (buscador) {
+            buscador.addEventListener('input', filtrarProveedoresEdicion);
+        }
+        const btnAgregar = document.getElementById('btnAgregarNuevoProveedor');
+        if (btnAgregar) {
+            btnAgregar.addEventListener('click', agregarNuevoProveedor);
+        }
+    }
+}
+
+function cerrarModoEdicionProveedores() {
+    const contenidoPrincipal = document.getElementById('contenidoPrincipal');
+    const modoEdicion = document.getElementById('modoEdicionProveedores');
+    if (contenidoPrincipal && modoEdicion) {
+        contenidoPrincipal.style.display = 'block';
+        modoEdicion.style.display = 'none';
+    }
+}
+
+function cargarListaProveedoresEdicion() {
+    const contenedor = document.getElementById('listaProveedoresEdicion');
+    if (!contenedor) return;
+    const proveedoresOrdenados = [...Object.keys(proveedoresData)].sort();
+    let html = '';
+    proveedoresOrdenados.forEach(proveedor => {
+        const dias = proveedoresData[proveedor];
+        html += `
+            <div class="proveedor-edicion-item" data-proveedor="${proveedor}">
+                <div class="proveedor-edicion-info">
+                    <strong>${proveedor}</strong>
+                    <span class="proveedor-edicion-dias">${dias} días de vencimiento</span>
+                </div>
+                <div class="proveedor-edicion-actions">
+                    <button class="btn-editar-edicion" data-proveedor="${proveedor}">
+                        <i class="fas fa-edit"></i>
+                    </button>
+                    <button class="btn-eliminar-edicion" data-proveedor="${proveedor}">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </div>
+            </div>
+        `;
+    });
+    contenedor.innerHTML = html;
+    document.querySelectorAll('.btn-editar-edicion').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            const proveedor = e.target.closest('button').dataset.proveedor;
+            mostrarFormularioEdicionProveedor(proveedor);
+        });
+    });
+    document.querySelectorAll('.btn-eliminar-edicion').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            const proveedor = e.target.closest('button').dataset.proveedor;
+            eliminarProveedorEdicion(proveedor);
+        });
+    });
+}
+
+function filtrarProveedoresEdicion() {
+    const buscador = document.getElementById('buscadorProveedores');
+    const termino = buscador.value.toLowerCase();
+    const items = document.querySelectorAll('.proveedor-edicion-item');
+    items.forEach(item => {
+        const proveedor = item.dataset.proveedor.toLowerCase();
+        if (proveedor.includes(termino)) {
+            item.style.display = 'flex';
+        } else {
+            item.style.display = 'none';
+        }
+    });
+}
+
+function mostrarFormularioEdicionProveedor(proveedor) {
+    const overlay = document.createElement('div');
+    overlay.className = 'formulario-edicion-overlay';
+    overlay.id = 'formularioEdicionOverlay';
+    const formulario = document.createElement('div');
+    formulario.className = 'formulario-edicion-flotante';
+    formulario.id = 'formularioEdicionProveedor';
+    formulario.innerHTML = `
+        <div class="formulario-edicion-header">
+            <h4>Editar Proveedor: ${proveedor}</h4>
+            <button class="btn-cerrar-formulario" id="btnCerrarFormulario">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <input type="text" id="nombreProveedorEdicion" value="${proveedor}" class="form-input" disabled>
+        <input type="number" id="diasProveedorEdicion" value="${proveedoresData[proveedor]}" class="form-input" placeholder="Días de vencimiento">
+        <div class="formulario-edicion-buttons">
+            <button id="btnGuardarEdicion" class="btn-guardar-proveedor">Guardar</button>
+            <button id="btnCancelarEdicion" class="btn-cancelar-proveedor">Cancelar</button>
+        </div>
+    `;
+    document.body.appendChild(overlay);
+    document.body.appendChild(formulario);
+    document.getElementById('btnCerrarFormulario').addEventListener('click', () => {
+        document.body.removeChild(overlay);
+        document.body.removeChild(formulario);
+    });
+    document.getElementById('btnCancelarEdicion').addEventListener('click', () => {
+        document.body.removeChild(overlay);
+        document.body.removeChild(formulario);
+    });
+    document.getElementById('btnGuardarEdicion').addEventListener('click', () => {
+        const nuevosDias = parseInt(document.getElementById('diasProveedorEdicion').value);
+        if (!isNaN(nuevosDias) && nuevosDias >= 0) {
+            proveedoresData[proveedor] = nuevosDias;
+            mostrarToast(`Proveedor ${proveedor} actualizado correctamente`, 'success');
+            document.body.removeChild(overlay);
+            document.body.removeChild(formulario);
+            cargarListaProveedoresEdicion();
+            autocomplete(document.getElementById("proveedor"), Object.keys(proveedoresData));
+        } else {
+            mostrarToast('Por favor, ingrese un número válido de días', 'error');
+        }
+    });
+    document.addEventListener('keydown', function cerrarConEsc(e) {
+        if (e.key === 'Escape') {
+            document.body.removeChild(overlay);
+            document.body.removeChild(formulario);
+            document.removeEventListener('keydown', cerrarConEsc);
+        }
+    });
+}
+
+function eliminarProveedorEdicion(nombre) {
+    if (!confirm(`¿Está seguro de que desea eliminar el proveedor ${nombre}?`)) {
+        return;
+    }
+    const tieneRegistros = proveedores.some(p => p.proveedor === nombre);
+    if (tieneRegistros) {
+        if (!confirm(`Este proveedor tiene registros asociados. ¿Está seguro de que desea eliminarlo? Esto podría afectar los cálculos de vencimiento.`)) {
+            return;
+        }
+    }
+    delete proveedoresData[nombre];
+    autocomplete(document.getElementById("proveedor"), Object.keys(proveedoresData));
+    mostrarToast(`Proveedor ${nombre} eliminado correctamente`, 'success');
+    cargarListaProveedoresEdicion();
+}
+
+function agregarNuevoProveedor() {
+    const nombreInput = document.getElementById('nombreNuevoProveedor');
+    const diasInput = document.getElementById('diasNuevoProveedor');
+    const nombre = nombreInput.value.trim().toUpperCase();
+    const dias = parseInt(diasInput.value);
+    if (!nombre) {
+        mostrarToast('Por favor, ingrese el nombre del proveedor', 'error');
+        return;
+    }
+    if (isNaN(dias) || dias < 0) {
+        mostrarToast('Por favor, ingrese un número válido de días', 'error');
+        return;
+    }
+    if (proveedoresData.hasOwnProperty(nombre)) {
+        mostrarToast('Ya existe un proveedor con ese nombre', 'error');
+        return;
+    }
+    proveedoresData[nombre] = dias;
+    autocomplete(document.getElementById("proveedor"), Object.keys(proveedoresData));
+    mostrarToast(`Proveedor ${nombre} agregado correctamente`, 'success');
+    nombreInput.value = '';
+    diasInput.value = '';
+    cargarListaProveedoresEdicion();
 }
