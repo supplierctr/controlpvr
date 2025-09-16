@@ -190,7 +190,18 @@ function validarPagado() {
 }
 
 function validarFecha() {
-    const fechaSeleccionada = new Date(fechaInput.value);
+    // Fix for date timezone issue - parse the date string manually to avoid timezone conversion
+    const dateParts = fechaInput.value.split('-');
+    let fechaSeleccionada;
+    if (dateParts.length === 3) {
+        const year = parseInt(dateParts[0]);
+        const month = parseInt(dateParts[1]) - 1; // Months are 0-indexed in JavaScript
+        const day = parseInt(dateParts[2]);
+        fechaSeleccionada = new Date(year, month, day);
+    } else {
+        // Fallback to original method if date format is unexpected
+        fechaSeleccionada = new Date(fechaInput.value);
+    }
     const hoy = new Date();
     hoy.setHours(0, 0, 0, 0);
     if (fechaSeleccionada > hoy) {
@@ -202,6 +213,22 @@ function validarFecha() {
 // Funciones de cálculo
 function calcularEstado(fecha, dias, importe, pagado) {
     if (pagado >= importe) return 'Pagado';
+    // Fix for date timezone issue - parse the date string manually to avoid timezone conversion
+    const dateParts = fecha.split('-');
+    if (dateParts.length === 3) {
+        const year = parseInt(dateParts[0]);
+        const month = parseInt(dateParts[1]) - 1; // Months are 0-indexed in JavaScript
+        const day = parseInt(dateParts[2]);
+        const fechaEntrada = new Date(year, month, day);
+        const fechaVencimiento = new Date(fechaEntrada);
+        fechaVencimiento.setDate(fechaEntrada.getDate() + dias);
+        const hoy = new Date();
+        hoy.setHours(0, 0, 0, 0);
+        if (hoy > fechaVencimiento) return 'Vencido';
+        if (pagado > 0) return 'Pendiente';
+        return 'No Vencido';
+    }
+    // Fallback to original method if date format is unexpected
     const fechaEntrada = new Date(fecha + 'T00:00:00');
     const fechaVencimiento = new Date(fechaEntrada);
     fechaVencimiento.setDate(fechaEntrada.getDate() + dias);
@@ -281,8 +308,23 @@ function renderizarTabla() {
                 valorB = b[ordenActual.columna] || 0;
                 break;
             case 'fecha':
-                valorA = new Date(a.fecha);
-                valorB = new Date(b.fecha);
+                // Fix for date timezone issue - parse the date string manually to avoid timezone conversion
+                const datePartsA = a.fecha.split('-');
+                const datePartsB = b.fecha.split('-');
+                if (datePartsA.length === 3 && datePartsB.length === 3) {
+                    const yearA = parseInt(datePartsA[0]);
+                    const monthA = parseInt(datePartsA[1]) - 1;
+                    const dayA = parseInt(datePartsA[2]);
+                    const yearB = parseInt(datePartsB[0]);
+                    const monthB = parseInt(datePartsB[1]) - 1;
+                    const dayB = parseInt(datePartsB[2]);
+                    valorA = new Date(yearA, monthA, dayA);
+                    valorB = new Date(yearB, monthB, dayB);
+                } else {
+                    // Fallback to original method if date format is unexpected
+                    valorA = new Date(a.fecha);
+                    valorB = new Date(b.fecha);
+                }
                 break;
             case 'estado':
                 valorA = calcularEstado(a.fecha, proveedoresData[a.proveedor], a.importe, a.pagado);
@@ -489,7 +531,22 @@ async function aportarDinero() {
     const facturasPendientes = proveedores
         .map((p, index) => ({...p, originalIndex: index}))
         .filter(p => p.proveedor === selectedProvider && (p.pagado || 0) < p.importe)
-        .sort((a, b) => new Date(a.fecha) - new Date(b.fecha));
+        .sort((a, b) => {
+            // Fix for date timezone issue - parse the date string manually to avoid timezone conversion
+            const datePartsA = a.fecha.split('-');
+            const datePartsB = b.fecha.split('-');
+            if (datePartsA.length === 3 && datePartsB.length === 3) {
+                const yearA = parseInt(datePartsA[0]);
+                const monthA = parseInt(datePartsA[1]) - 1;
+                const dayA = parseInt(datePartsA[2]);
+                const yearB = parseInt(datePartsB[0]);
+                const monthB = parseInt(datePartsB[1]) - 1;
+                const dayB = parseInt(datePartsB[2]);
+                return new Date(yearA, monthA, dayA) - new Date(yearB, monthB, dayB);
+            }
+            // Fallback to original method if date format is unexpected
+            return new Date(a.fecha) - new Date(b.fecha);
+        });
     if (facturasPendientes.length === 0) {
         mostrarToast(`No hay facturas pendientes para pagar para ${selectedProvider}.`, 'warning');
         return;
@@ -528,10 +585,10 @@ async function borrarTodo() {
 
 // Funciones de exportación
 function guardarTxt() {
-    let contenido = "PROVEEDOR\\tN° BOLETA\\tFORMA PAGO\\tIMPORTE\\tFECHA\\tPAGADO\\tESTADO\\n";
+    let contenido = "PROVEEDOR\tN° BOLETA\tFORMA PAGO\tIMPORTE\tFECHA\tPAGADO\tESTADO\n";
     proveedores.forEach(p => {
         const estado = calcularEstado(p.fecha, proveedoresData[p.proveedor], p.importe, p.pagado);
-        contenido += `${p.proveedor}\\t${p.numBol}\\t${p.formaPago}\\t${p.importe}\\t${p.fecha}\\t${p.pagado || 0}\\t${estado}\\n`;
+        contenido += `${p.proveedor}\t${p.numBol}\t${p.formaPago}\t${p.importe}\t${p.fecha}\t${p.pagado || 0}\t${estado}\n`;
     });
     const hoy = new Date();
     const fechaFormato = `${hoy.getDate()}-${hoy.getMonth() + 1}-${hoy.getFullYear()}`;
@@ -541,10 +598,21 @@ function guardarTxt() {
 }
 
 function guardarExcel() {
-    let contenido = "Proveedor,N° Boleta,Forma de Pago,Importe,Fecha,Pagado,Estado\\n";
+    let contenido = "Proveedor,N\u00b0 Boleta,Forma de Pago,Importe,Fecha,Pagado,Estado\n";
+    // Function to properly escape CSV values
+    const escapeCSV = (value) => {
+        if (typeof value === 'string') {
+            // If value contains comma, newline or quote, wrap in quotes and escape quotes
+            if (value.includes(',') || value.includes('"') || value.includes('\n')) {
+                return `"${value.replace(/"/g, '""')}"`;
+            }
+            return value;
+        }
+        return value;
+    };
     proveedores.forEach(p => {
         const estado = calcularEstado(p.fecha, proveedoresData[p.proveedor], p.importe, p.pagado);
-        contenido += `"${p.proveedor}","${p.numBol}","${p.formaPago}",${p.importe},"${p.fecha}",${p.pagado || 0},"${estado}"\\n`;
+        contenido += `${escapeCSV(p.proveedor)},${escapeCSV(p.numBol)},${escapeCSV(p.formaPago)},${p.importe},"${p.fecha}",${p.pagado || 0},${escapeCSV(estado)}\n`;
     });
     const hoy = new Date();
     const fechaFormato = `${hoy.getDate()}-${hoy.getMonth() + 1}-${hoy.getFullYear()}`;
@@ -569,11 +637,22 @@ async function cargarTxt(event) {
     const reader = new FileReader();
     reader.onload = async function(e) {
         const content = e.target.result;
-        const lineas = content.split('\\n').filter(linea => linea.trim() !== '');
+        const lineas = content.split('\n').filter(linea => linea.trim() !== '');
         if (lineas.length > 1) {
             const nuevosProveedores = [];
+            // Check if it's a CSV file (Excel export) or TXT file
+            const isCSV = lineas[0].includes(',');
+            
             for (let i = 1; i < lineas.length; i++) {
-                const columnas = lineas[i].split('\\t');
+                let columnas;
+                if (isCSV) {
+                    // Parse CSV line (handle quoted fields)
+                    columnas = parseCSVLine(lineas[i]);
+                } else {
+                    // Split by actual tab characters for TXT files
+                    columnas = lineas[i].split('\t');
+                }
+                
                 if (columnas.length >= 6) {
                     const proveedor = columnas[0];
                     const numBol = columnas[1];
@@ -596,6 +675,39 @@ async function cargarTxt(event) {
     if (event.target) event.target.value = '';
 }
 
+// Helper function to parse CSV lines properly
+function parseCSVLine(line) {
+    const result = [];
+    let current = '';
+    let inQuotes = false;
+    
+    for (let i = 0; i < line.length; i++) {
+        const char = line[i];
+        
+        if (char === '"') {
+            if (inQuotes && i + 1 < line.length && line[i + 1] === '"') {
+                // Double quotes inside quoted field -> treat as single quote
+                current += '"';
+                i++; // Skip next quote
+            } else {
+                // Toggle quote state
+                inQuotes = !inQuotes;
+            }
+        } else if (char === ',' && !inQuotes) {
+            // Comma outside quotes -> end of field
+            result.push(current);
+            current = '';
+        } else {
+            // Regular character
+            current += char;
+        }
+    }
+    
+    // Push the last field
+    result.push(current);
+    return result;
+}
+
 // Funciones de utilidad
 function formatearFecha(fecha) {
     const opciones = { 
@@ -603,6 +715,14 @@ function formatearFecha(fecha) {
         month: '2-digit', 
         day: '2-digit' 
     };
+    // Fix for date timezone issue - parse the date string manually to avoid timezone conversion
+    const dateParts = fecha.split('-');
+    if (dateParts.length === 3) {
+        const year = parseInt(dateParts[0]);
+        const month = parseInt(dateParts[1]) - 1; // Months are 0-indexed in JavaScript
+        const day = parseInt(dateParts[2]);
+        return new Date(year, month, day).toLocaleDateString('es-ES', opciones);
+    }
     return new Date(fecha).toLocaleDateString('es-ES', opciones);
 }
 
