@@ -2,10 +2,10 @@
 const proveedoresData = {
     "ACHURAS": 7, "ALFAJORES/OTROS": 7, "BARRAZA": 28, "BODEGA LA RURAL": 30,
     "CAR. DOS SANTOS": 15, "CHAMPIÑON": 0, "GASEOSA COCA": 0, "HELADOS": 15,
-    "HIELO": 20, "HUEVOS": 1, "LIMPIEZA": 1, "LUSTROL": 30,
+    "HIELO": 20, "HUEVOS": 1, "LIMPIEZA / DETERGENTE": 1, "LUSTROL": 30,
     "MEDIALUNAS": 28, "PAPELERIA": 28, "PASTAS": 4, "PROVOLETA": 0,
     "QUILMES": 0, "SODA/AGUA": 7, "TAMALES": 7, "TAPAS EMPANADAS": 3,
-    "VARIOS": 0, "VERONICA": 4, "MAXIREST": 0, "SAN HUBERTO": 30,
+    "VARIOS": 0, "VERONICA": 4, "MAXIREST": 0, "SAN HUBERTO": 30, "VERDULERIA": 0,
     "CARBON/LEÑA": 30, "SANDWICH": 28, "MERMELADAS": 15, "FUMIGACION": 15,
     "L. CAMPANA": 15, "PESCA": 0, "SEPTIMA VINOS": 30, "GASEOSA PIPA": 15,
     "TEC. YAROS": 7, "CAR. ACONCAGUA": 28, "DON ENRIQUE": 28, "CAMPO IMAVA": 28,
@@ -643,6 +643,9 @@ async function cargarTxt(event) {
             // Check if it's a CSV file (Excel export) or TXT file
             const isCSV = lineas[0].includes(',');
             
+            // Track new providers that are not in the current list
+            const nuevosProveedoresSet = new Set();
+            
             for (let i = 1; i < lineas.length; i++) {
                 let columnas;
                 if (isCSV) {
@@ -660,14 +663,29 @@ async function cargarTxt(event) {
                     const importe = parseFloat(columnas[3]);
                     const fecha = columnas[4];
                     const pagado = parseFloat(columnas[5]);
-                    if (proveedoresData.hasOwnProperty(proveedor)) {
-                        nuevosProveedores.push({ proveedor, numBol, formaPago, importe, fecha, pagado });
+                    
+                    // Add provider to the list if not already present
+                    if (!proveedoresData.hasOwnProperty(proveedor)) {
+                        // Add new provider with a default of 0 days (can be edited later)
+                        proveedoresData[proveedor] = 0;
+                        nuevosProveedoresSet.add(proveedor);
                     }
+                    
+                    nuevosProveedores.push({ proveedor, numBol, formaPago, importe, fecha, pagado });
                 }
             }
+            
+            // If we added new providers, show a message
+            if (nuevosProveedoresSet.size > 0) {
+                const listaProveedores = Array.from(nuevosProveedoresSet).join(', ');
+                mostrarToast(`Se agregaron nuevos proveedores: ${listaProveedores}. Puedes editar sus días de vencimiento en el panel de proveedores.`, 'info');
+            }
+            
             proveedores = nuevosProveedores;
             await saveProveedores();
             renderizarTabla();
+            // Update autocomplete with new providers
+            autocomplete(document.getElementById("proveedor"), Object.keys(proveedoresData));
             mostrarToast('Respaldo cargado exitosamente.', 'success');
         }
     };
@@ -928,7 +946,7 @@ function mostrarFormularioEdicionProveedor(proveedor) {
                 <i class="fas fa-times"></i>
             </button>
         </div>
-        <input type="text" id="nombreProveedorEdicion" value="${proveedor}" class="form-input" disabled>
+        <input type="text" id="nombreProveedorEdicion" value="${proveedor}" class="form-input">
         <input type="number" id="diasProveedorEdicion" value="${proveedoresData[proveedor]}" class="form-input" placeholder="Días de vencimiento">
         <div class="formulario-edicion-buttons">
             <button id="btnGuardarEdicion" class="btn-guardar-proveedor">Guardar</button>
@@ -946,16 +964,60 @@ function mostrarFormularioEdicionProveedor(proveedor) {
         document.body.removeChild(formulario);
     });
     document.getElementById('btnGuardarEdicion').addEventListener('click', () => {
+        const nuevoNombre = document.getElementById('nombreProveedorEdicion').value.trim().toUpperCase();
         const nuevosDias = parseInt(document.getElementById('diasProveedorEdicion').value);
-        if (!isNaN(nuevosDias) && nuevosDias >= 0) {
+        
+        if (!nuevoNombre) {
+            mostrarToast('Por favor, ingrese un nombre para el proveedor', 'error');
+            return;
+        }
+        
+        if (isNaN(nuevosDias) || nuevosDias < 0) {
+            mostrarToast('Por favor, ingrese un número válido de días', 'error');
+            return;
+        }
+        
+        // Check if the name has changed
+        if (nuevoNombre !== proveedor) {
+            // Check if a provider with the new name already exists
+            if (proveedoresData.hasOwnProperty(nuevoNombre)) {
+                mostrarToast(`Ya existe un proveedor con el nombre ${nuevoNombre}`, 'error');
+                return;
+            }
+            
+            // Update the provider name in all existing records
+            const registrosActualizados = proveedores.filter(p => p.proveedor === proveedor).length;
+            if (registrosActualizados > 0) {
+                if (!confirm(`Se actualizarán ${registrosActualizados} registros con el nuevo nombre de proveedor. ¿Desea continuar?`)) {
+                    return;
+                }
+                proveedores.forEach(p => {
+                    if (p.proveedor === proveedor) {
+                        p.proveedor = nuevoNombre;
+                    }
+                });
+            }
+            
+            // Remove the old provider and add the new one
+            delete proveedoresData[proveedor];
+            proveedoresData[nuevoNombre] = nuevosDias;
+            
+            // Save the changes
+            saveProveedores().then(() => {
+                mostrarToast(`Proveedor ${proveedor} renombrado a ${nuevoNombre} y actualizado correctamente`, 'success');
+                document.body.removeChild(overlay);
+                document.body.removeChild(formulario);
+                cargarListaProveedoresEdicion();
+                autocomplete(document.getElementById("proveedor"), Object.keys(proveedoresData));
+            });
+        } else {
+            // Only updating days
             proveedoresData[proveedor] = nuevosDias;
             mostrarToast(`Proveedor ${proveedor} actualizado correctamente`, 'success');
             document.body.removeChild(overlay);
             document.body.removeChild(formulario);
             cargarListaProveedoresEdicion();
             autocomplete(document.getElementById("proveedor"), Object.keys(proveedoresData));
-        } else {
-            mostrarToast('Por favor, ingrese un número válido de días', 'error');
         }
     });
     document.addEventListener('keydown', function cerrarConEsc(e) {
